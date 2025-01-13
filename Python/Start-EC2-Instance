@@ -1,1 +1,48 @@
 
+import boto3
+
+def start_ec2_instances_in_vpc(vpc_id, exclude_instance_id):
+    """
+    Starts all EC2 instances in the specified VPC, except the excluded instance.
+
+    :param vpc_id: The ID of the VPC.
+    :param exclude_instance_id: The ID of the EC2 instance to exclude from starting.
+    """
+    # Initialize boto3 EC2 client
+    ec2 = boto3.client('ec2')
+
+    try:
+        # Get all EC2 instances in the specified VPC
+        response = ec2.describe_instances(
+            Filters=[
+                {'Name': 'vpc-id', 'Values': [vpc_id]},
+                {'Name': 'instance-state-name', 'Values': ['stopped']}  # Only stopped instances
+            ]
+        )
+
+        instances_to_start = []
+
+        for reservation in response['Reservations']:
+            for instance in reservation['Instances']:
+                instance_id = instance['InstanceId']
+                if instance_id != exclude_instance_id:
+                    instances_to_start.append(instance_id)
+
+        if instances_to_start:
+            # Start the instances
+            start_response = ec2.start_instances(InstanceIds=instances_to_start)
+            print(f"Started instances: {instances_to_start}")
+            print(start_response)
+        else:
+            print("No instances to start or all instances are excluded.")
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+# Example usage
+if __name__ == "__main__":
+    # Replace with your VPC ID and instance ID to exclude
+    VPC_ID = "vpc-089e135b3e58cbc37"
+    EXCLUDE_INSTANCE_ID = "i-085e86543f0c36a4b"
+
+    start_ec2_instances_in_vpc(VPC_ID, EXCLUDE_INSTANCE_ID)
